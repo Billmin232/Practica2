@@ -1,26 +1,19 @@
-from machine import Pin
+"""Programa ESP33"""
+
+from BLE import *
+from UART import *
 import time
-from ultrasonido import getSonar
-from myservo import myServo
 
-servo = myServo(14)#set servo pin
-servo.myServoWriteAngle(0)#Set Servo Angle
-time.sleep_ms(1000)
+sender = UartClass(1,4,5)
 
-if __name__ == "__main__":
-    
-    try:
-        while True:
-            distanica = getSonar()
-            print("Distance:", getSonar())
-            if getSonar() <= 50:
-                angulo = (getSonar()/50) * 180
-                print("Angulo:", angulo)
-                servo.myServoWriteAngle(angulo)
-            elif getSonar() > 50:
-                print("Demasiada distancia")
-                while getSonar() > 50:
-                    time.sleep_ms(100)
-            time.sleep_ms(50)
-    except:
-        servo.deinit()
+def on_rx(rx_data):
+        print("RX", rx_data)
+        sender.send_command(rx_data)
+
+ble = bluetooth.BLE()
+p = BLESimplePeripheral(ble)
+p.on_write(on_rx)
+
+while True:
+    time.sleep_ms(1000)
+    p.send("I'm alive")

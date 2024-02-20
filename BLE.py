@@ -1,5 +1,5 @@
 # This example demonstrates a UART periperhal.
-
+import UART
 import bluetooth
 import random
 import struct
@@ -83,6 +83,7 @@ def demo():
 
     def on_rx(rx_data):
         print("RX", rx_data)
+        sender.send_command(rx_data)
 
     p.on_write(on_rx)
     

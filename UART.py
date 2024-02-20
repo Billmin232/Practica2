@@ -34,7 +34,7 @@ class UartClass:
 
     """
         
-    def __init__(self, identifier, tx_pin, rx_pin):
+    def __init__(self, identifier, tx_pin=-1, rx_pin=-1):
         """UartClass constructor
         
         During initialization the class creates a UART and launches the
@@ -47,33 +47,33 @@ class UartClass:
             rx_pin (int): Pin number that will be receiving data
 
         """
+        self.lcd = None
+        
         self.flag_start = False
         self.flag_stop = False
-        self.uart = UART(identifier, 115200, tx = tx_pin, rx = rx_pin)
+        
+        if (tx_pin!=-1 and rx_pin!=-1):
+            self.uart = UART(identifier, 115200, tx = tx_pin, rx = rx_pin)
+        else:
+            self.uart = UART(identifier, 115200)
+            
         
         _thread.start_new_thread(self.__listener, ())
-        sleep_ms(1000)
+        sleep_ms(200)
         
         
-    def __init2__(self, identifier):
-        """UartClass constructor
+    def set_lcd(seld, lcd):
+        """This function sets an lcd output for the uartClass
         
-        During initialization the class creates a UART and launches the
-        listenning thread. This uses the default UART pins. Recomended for
-        Raspberry Pi Pico
+        This function will set a lcd display for the uartClass to report the
+        messages it receives. If it is not set the class won't try to print
         
         Args:
-            identifier (int): UART to use. ESP32 provides 0,1 and 2.
-                              0 is not recommended. RPI provides 1 and 0, with
-                              0 beeing the recomended.
+            lcd (LCD): instance of a LCD class already initialized for use.
 
         """
-        self.flag_start = False
-        self.flag_stop = False
-        self.uart = UART(identifier, 115200)
-        
-        _thread.start_new_thread(self.__listener, ())
-        sleep_ms(1000)
+        self.lcd = lcd        
+        self.lcd.puts("LCD - UART OK",1,0)
         
         
     def send_command(self, command : str):
@@ -107,8 +107,12 @@ class UartClass:
         """
         while True:
             line = self.uart.readline()
-            #print(line)
             if(line != None):
+                if (self.lcd!=None):
+                    self.lcd.puts("                ", 0,0)	#clear line
+                    self.lcd.puts(line, 0,0)
+                else:
+                    """print(line)"""
                 try:
                     obj = json.loads(line)
                     if('command' in obj):
@@ -156,8 +160,21 @@ class UartClass:
             return True
         return False
     
+        
+def uartClass_receive_test():
+    """Nominal behaviour test for UartClass listener on Rasberry Pi Pico
+
+    An instance is created for the UART 0 in the Raspberry Pi Pico with the
+    default values for the pins.
     
-if __name__ == "__main__":
+    """
+    comms = UartClass(0)
+    while True:
+        if(comms.is_started() == True):
+            print("Start")
+        sleep_ms(1000)
+    
+def uartClass_singleBoard_test():
     """Nominal behaviour test for UartClass implementation
 
     Two instances of the UartClass will be created in the same board to
@@ -170,12 +187,15 @@ if __name__ == "__main__":
         pin 5 --- pin 13
 
     """
-    sender = UartClass(identifier = 1, tx_pin = 4, rx_pin = 5)
-    receiver = UartClass(identifier = 2, tx_pin = 13, rx_pin = 14)
+    sender = UartClass(1,4,5)
+    receiver = UartClass(2,13,14)
     
     while True:
         if(receiver.is_started() == True):
             print("Start")
         sender.send_command("start")
         sleep_ms(1000)
-    
+        
+        
+if __name__ == "__main__":
+    uartClass_receive_test()
